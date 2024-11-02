@@ -10,7 +10,8 @@ import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.ObjectMessage;
@@ -26,10 +27,16 @@ public class SimpleChat implements Receiver {
     private JChannel channel;
     private JChannel heartbeatChannel;
     private ScheduledExecutorService heartbeatScheduler;
-    String user_name = System.getProperty("user.name", "n/a");
-    final HashMap<String, String> state = new HashMap<>();
+    String userName = System.getProperty("user.name", "n/a");
+    final HashMap<String, MessageWithTimestamp> state = new HashMap<>();
 
     private void start() throws Exception {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        System.out.print("Enter your name: ");
+        userName = reader.readLine().trim();
+        if (userName.isEmpty()) {
+            userName = "Anonymous";
+        }
         channel = new JChannel().setReceiver(this);
         channel.connect("ChatCluster");
         channel.getState(null, 10000);
@@ -53,7 +60,7 @@ public class SimpleChat implements Receiver {
                 if (line.startsWith("quit") || line.startsWith("exit")) {
                     break;
                 }
-                line = "[" + user_name + "] " + line;
+                line = "[" + userName + "] " + line;
                 Message msg = new ObjectMessage(null, line);
                 channel.send(msg);
             } catch (Exception e) {
@@ -70,7 +77,6 @@ public class SimpleChat implements Receiver {
         }
     }
 
-
     @Override
     public void getState(OutputStream output) throws Exception {
         synchronized (state) {
@@ -80,13 +86,13 @@ public class SimpleChat implements Receiver {
 
     @Override
     public void setState(InputStream input) throws Exception {
-        HashMap<String, String> map;
-        map = (HashMap<String, String>) Util.objectFromStream(new DataInputStream(input));
+        HashMap<String, MessageWithTimestamp> map;
+        map = (HashMap<String, MessageWithTimestamp>) Util.objectFromStream(new DataInputStream(input));
         synchronized (state) {
             state.clear();
             state.putAll(map);
         }
-        System.out.println("Chat history (key-value pairs):");
+        System.out.println("Chat history with timestamps:");
         map.forEach((key, value) -> System.out.println(key + ": " + value));
     }
 
@@ -102,17 +108,17 @@ public class SimpleChat implements Receiver {
     public void receive(Message msg) {
         String user = msg.getSrc().toString();
         String message = msg.getObject().toString();
-        System.out.println(user + ": " + message);
+        MessageWithTimestamp messageWithTimestamp = new MessageWithTimestamp(message);
+        System.out.println(user + ": " + messageWithTimestamp);
         synchronized (state) {
-            state.put(user, message);
+            state.put(user, messageWithTimestamp);
         }
     }
 
     public static void main(String[] args) throws Exception {
+        Logger.getLogger("org.jgroups.util.SuppressLog").setLevel(Level.SEVERE);
+        Logger.getLogger("org.jgroups.protocols.pbcast.GMS").setLevel(Level.WARNING);
+        Logger.getLogger("org.jgroups.protocols.TP").setLevel(Level.WARNING);
         new SimpleChat().start();
     }
 }
-//crear un balanceador de cargas que cree mensajes y los distribuya en n nodos en el back, 
-//el problema es saber a cuantos se tiene que distribuir
-//creando dos grupos, uno para el back de registros donde cada que un nodo se sube
-//

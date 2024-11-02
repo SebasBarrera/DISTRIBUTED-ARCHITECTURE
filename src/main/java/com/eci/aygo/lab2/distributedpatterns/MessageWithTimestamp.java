@@ -1,13 +1,28 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.eci.aygo.lab2.distributedpatterns;
 
-/**
- *
- * @author Sebastian
- */
-public class MessageWithTimestamp {
-    
+import java.io.Serializable;
+import java.time.Instant;
+
+public class MessageWithTimestamp implements Serializable {
+    private final String message;
+    private final Instant timestamp;
+
+    public MessageWithTimestamp(String message) {
+        this.message = message;
+        this.timestamp = Instant.now();
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public Instant getTimestamp() {
+        return timestamp;
+    }
+
+    @Override
+    public String toString() {
+        return "[" + timestamp + "] " + message;
+    }
 }
+
