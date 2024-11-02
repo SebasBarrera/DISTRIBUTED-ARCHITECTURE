@@ -13,6 +13,7 @@ public class HeartbeatReceiver implements Receiver {
     public void receive(Message msg) {
         String sender = msg.getSrc().toString();
         lastHeartbeatTimes.put(sender, System.currentTimeMillis());
+        checkNodes();
     }
 
     public void checkNodes() {

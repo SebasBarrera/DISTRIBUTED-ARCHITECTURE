@@ -113,7 +113,6 @@ public class SimpleChat implements Receiver {
         synchronized (state) {
             state.put(user, messageWithTimestamp);
         }
-        checkNodes();
     }
 
     public static void main(String[] args) throws Exception {
