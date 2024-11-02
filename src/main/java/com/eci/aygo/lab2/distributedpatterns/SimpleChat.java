@@ -6,6 +6,7 @@ import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import org.jgroups.JChannel;
@@ -19,7 +20,7 @@ public class SimpleChat implements Receiver {
 
     JChannel channel;
     String user_name = System.getProperty("user.name", "n/a");
-    final List<String> state = new LinkedList<>();
+    final HashMap<String, String> state = new HashMap<>();
 
     private void start() throws Exception {
         //channel = new JChannel().setReceiver(this).connect("ChatCluster");
@@ -57,14 +58,14 @@ public class SimpleChat implements Receiver {
 
     @Override
     public void setState(InputStream input) throws Exception {
-        List<String> list;
-        list = (List<String>) Util.objectFromStream(new DataInputStream(input));
+        HashMap<String, String> map;
+        map = (HashMap<String, String>) Util.objectFromStream(new DataInputStream(input));
         synchronized (state) {
             state.clear();
-            state.addAll(list);
+            state.putAll(map);
         }
-        System.out.println(list.size() + " messages in chat history):");
-        list.forEach(System.out::println);
+        System.out.println("Chat history (key-value pairs):");
+        map.forEach((key, value) -> System.out.println(key + ": " + value));
     }
 
     @Override
