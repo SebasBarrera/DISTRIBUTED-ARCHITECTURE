@@ -7,8 +7,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.ObjectMessage;
@@ -18,17 +20,27 @@ import org.jgroups.util.Util;
 
 public class SimpleChat implements Receiver {
 
-    JChannel channel;
+    public static final int HEARTBEAT_INTERVAL = 1000; // 1 segundo
+    public static final int HEARTBEAT_TIMEOUT = 3000;
+
+    private JChannel channel;
+    private JChannel heartbeatChannel;
+    private ScheduledExecutorService heartbeatScheduler;
     String user_name = System.getProperty("user.name", "n/a");
     final HashMap<String, String> state = new HashMap<>();
 
     private void start() throws Exception {
-        //channel = new JChannel().setReceiver(this).connect("ChatCluster");
         channel = new JChannel().setReceiver(this);
         channel.connect("ChatCluster");
         channel.getState(null, 10000);
+        heartbeatChannel = new JChannel().setReceiver(new HeartbeatReceiver());
+        heartbeatChannel.connect("HeartbeatChannel");
+        heartbeatScheduler = Executors.newScheduledThreadPool(1);
+        heartbeatScheduler.scheduleAtFixedRate(this::sendHeartbeat, 0, HEARTBEAT_INTERVAL, TimeUnit.MILLISECONDS);
         eventLoop();
+        heartbeatScheduler.shutdown();
         channel.close();
+        heartbeatChannel.close();
     }
 
     private void eventLoop() {
@@ -48,6 +60,16 @@ public class SimpleChat implements Receiver {
             }
         }
     }
+
+    private void sendHeartbeat() {
+        try {
+            Message heartbeat = new ObjectMessage(null, "heartbeat");
+            heartbeatChannel.send(heartbeat);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     @Override
     public void getState(OutputStream output) throws Exception {
@@ -71,15 +93,18 @@ public class SimpleChat implements Receiver {
     @Override
     public void viewAccepted(View new_view) {
         System.out.println("** view: " + new_view);
+        new_view.getMembers().forEach(member -> {
+            System.out.println("Member: " + member);
+        });
     }
 
     @Override
     public void receive(Message msg) {
-        //System.out.println(msg.getSrc() + ": " + msg.getObject());
-        String line = msg.getSrc() + ": " + msg.getObject();
-        System.out.println(line);
+        String user = msg.getSrc().toString();
+        String message = msg.getObject().toString();
+        System.out.println(user + ": " + message);
         synchronized (state) {
-            state.add(line);
+            state.put(user, message);
         }
     }
 
