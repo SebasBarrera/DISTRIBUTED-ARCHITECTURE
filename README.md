@@ -20,13 +20,6 @@ DistributedPatterns es un sistema distribuido resiliente que implementa una estr
    - Cada nodo envía un mensaje de "heartbeat" cada segundo, permitiendo a otros nodos monitorear su actividad.
    - Si un nodo deja de enviar heartbeats, se considera inactivo. Cuando vuelve, recibe el estado actual.
 
-3. **Balanceador de Carga**:
-   - Construido con Spring, este balanceador de carga gestiona dinámicamente la disponibilidad de nodos y distribuye las solicitudes utilizando una estrategia de round-robin.
-   - Asegura que las solicitudes de clientes se distribuyan de manera equitativa entre los nodos disponibles.
-
-4. **Interfaz de Cliente Web**:
-   - Una interfaz web (JavaScript, HTML y CSS) que permite a los clientes interactuar con el sistema.
-   - Envía solicitudes de forma asíncrona, permitiendo el registro y visualización de mensajes en tiempo real.
 
 ### Proceso de Flujo
 
